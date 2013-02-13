@@ -13,12 +13,17 @@ void main() {
    printf(" Input Seconds: ");
 
    scanf("%lg", &time);
-   distance= .5 * GRAVITY * time * time;
-   velocity= GRAVITY * time;
 
-   printf("   Time of fall = %lg seconds \n", time);
-   printf("   Distance of fall = %lg meters \n", distance);
-   printf("   Velocity of the object = %g m/s \n\n", velocity);
+   if(time > 0) {
+      distance= .5 * GRAVITY * time * time;
+      velocity= GRAVITY * time;
+
+      printf("   Time of fall = %g seconds \n", time);
+      printf("   Distance of fall = %g meters \n", distance);
+      printf("   Velocity of the object = %g m/s \n\n", velocity);
+   } else {
+      printf(" Sorry, you entered %g, that is not a valid time!\n\n", time);
+   }
 
    printf(" Goodbye!\n");
 }
