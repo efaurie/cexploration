@@ -1,6 +1,8 @@
 /* Gaussian elimination without pivoting.
- * Compile with "gcc gauss.c" 
+ * Compile with "gcc -fopenmp gaussOMP.c" 
  */
+
+/* Please see line 188 for gauss function and comments */
 
 /* ****** ADD YOUR CODE AT THE END OF THIS FILE. ******
  * You need not submit the provided code.
@@ -187,7 +189,7 @@ void gauss() {
   int norm, row, col;  /* Normalization row, and zeroing
                         * element row and col
                         */
-  /* Variables containing information for each thread */
+  /* Variables containing information for each chunk */
   int thread;
   int work_load;
   int work_remainder;

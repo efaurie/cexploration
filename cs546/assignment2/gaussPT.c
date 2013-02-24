@@ -1,6 +1,8 @@
 /* Gaussian elimination without pivoting.
- * Compile with "gcc gauss.c" 
+ * Compile with "gcc -pthread gaussPT.c" 
  */
+
+/* Please see line 196 for gauss function and comments */
 
 /* ****** ADD YOUR CODE AT THE END OF THIS FILE. ******
  * You need not submit the provided code.
@@ -195,32 +197,47 @@ void gauss() {
   int norm, row, col;  /* Normalization row, and zeroing
                         * element row and col
                         */
+  /* A structure for passing in multiple args to the pthread function
+   * an array of thread elements, the attribute flag to make the 
+   * threads joinable, and a status var (currently unused).
+   */
   struct task_data data_array[NUM_THREADS];
   pthread_t threads[NUM_THREADS];
   pthread_attr_t attr;
   void *status;
-
+  
+  /* Variables containing information for each thread: an id
+   * the number of rows each thread computes (work_load)
+   * the number of rows remaining when not perfectly divisible
+   * by the number of threads (work_remainder) and the row to
+   * begin computation on.
+   */
   int thread;
   int work_load;
   int work_remainder;
   int start_row;
 
+  /* The threads must be joinable */
   pthread_attr_init(&attr);
   pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
   printf("Computing In Parallel (Pthread).\n");
 
   /* Pthread Parallel Gaussian Elimination */
   for(norm = 0; norm < N - 1; norm++) {
-    /* create threads to run forward elim task */
+    /* Determine the work_load for each thread */
 
    start_row = norm + 1;
    work_load = (N - start_row) / NUM_THREADS;
    work_remainder = (N - start_row) % NUM_THREADS;
 
+   /* For each thread */
    for(thread = 0; thread < NUM_THREADS; thread++) {
+      /* Define the arguments to be passed in */
       data_array[thread].thread_id = thread;
       data_array[thread].norm = norm;
       data_array[thread].start_row = start_row + (thread * work_load);
+
+      /* If the thread is the last one, assign all work_remainder rows to it as well */
       if(thread == NUM_THREADS - 1) {
          data_array[thread].work_load = work_load + work_remainder;
          pthread_create(&threads[thread], &attr, ForwardElimTask, (void *) &data_array[thread]);
@@ -229,8 +246,12 @@ void gauss() {
          pthread_create(&threads[thread], &attr, ForwardElimTask, (void *) &data_array[thread]);
       }
    }
-
+   
+   /* Release the attribute variable */
    pthread_attr_destroy(&attr);
+   /* The threads must join before moving to the next iteration because of 
+    * the shared B vector.
+    */
    for(thread = 0; thread < NUM_THREADS; thread++) {
       pthread_join(threads[thread], &status);
    }
@@ -239,7 +260,6 @@ void gauss() {
   /* (Diagonal elements are not normalized to 1.  This is treated in back
    * substitution.)
    */
-
 
   /* Back substitution */
   for (row = N - 1; row >= 0; row--) {
@@ -251,7 +271,10 @@ void gauss() {
   }
 }
 
+
+/* The logic for the forward elimination */
 void *ForwardElimTask(void *args) {
+   /* Parse the arguments */
    struct task_data *my_task;
    my_task = (struct task_data *) args;
    int thread_id = my_task->thread_id;
@@ -262,6 +285,7 @@ void *ForwardElimTask(void *args) {
    int col, row;
    float multiplier;
 
+   /* For each row assigned to the threads work load */
    for(row = start_row; row < start_row + work_load; row++) {
       multiplier = A[row][norm] / A[norm][norm];
       for(col = norm; col < N; col++) {
