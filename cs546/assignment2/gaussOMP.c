@@ -202,6 +202,7 @@ void gauss() {
    work_load = (N - start_row) / NUM_THREADS;
    work_remainder = (N - start_row) % NUM_THREADS;
 
+   #pragma omp parallel for private (thread)
    for(thread = 0; thread < NUM_THREADS; thread++) {
       if(thread == NUM_THREADS - 1)
          forwardElimTask(norm, start_row+(thread*work_load),
