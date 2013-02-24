@@ -187,23 +187,30 @@ void gauss() {
   int norm, row, col;  /* Normalization row, and zeroing
                         * element row and col
                         */
+  /* Variables containing information for each thread */
   int thread;
   int work_load;
   int work_remainder;
   int start_row;
 
-  printf("Computing In Parallel (Pthread).\n");
+  printf("Computing In Parallel (OpenMP).\n");
 
   /* Pthread Parallel Gaussian Elimination */
   for(norm = 0; norm < N - 1; norm++) {
-    /* create threads to run forward elim task */
-
+    /* Determine each threads work_load */
    start_row = norm + 1;
    work_load = (N - start_row) / NUM_THREADS;
    work_remainder = (N - start_row) % NUM_THREADS;
 
+   /* Parallelize the forward elimination task
+    * Note that thread (the index) is the only variable
+    * needed to be private, as all else are shared and only
+    * read (not written to).
+    */
    #pragma omp parallel for private (thread)
    for(thread = 0; thread < NUM_THREADS; thread++) {
+      /* If it is the last thread to be created, 
+       * assign the work_remainder to it as well */
       if(thread == NUM_THREADS - 1)
          forwardElimTask(norm, start_row+(thread*work_load),
                          work_load+work_remainder);
@@ -228,6 +235,8 @@ void gauss() {
   }
 }
 
+/* Beginning at row start_row and continuing for
+ * work_load rows, do the forward elimination */
 void forwardElimTask(int norm, int start_row, int work_load) {
    float multiplier;
    int col, row;
