@@ -157,16 +157,15 @@ int main(int argc, char **argv) {
 void gauss( float A[],  float B[],  float X[], int my_rank, int p) {
   int norm, row, col, i;
   float multiplier;
-  int excess_work;
   int end_row;
   MPI_Status status;
   
   /*Slice up the rows */
   int row_workload = (N-1)/p;
   int excess_work = (N-1)%p;
-  end_row = row_workload + excess_workload;
+  end_row = row_workload + excess_work;
   for(i = 1; i < p; i++) {
-	MPI_Ssend(&A[((N*(row_workload*i))+(N*excess_row_work))], row_workload*N, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+	MPI_Ssend(&A[((N*(row_workload*i))+(N*excess_work))], row_workload*N, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
   }
   
   for(norm = 0; norm < N - 1; norm++) {
@@ -188,7 +187,7 @@ void gauss( float A[],  float B[],  float X[], int my_rank, int p) {
   }
   
   for(i = 1; i < p; i++) {
-	MPI_Recv(&A[((N*(row_workload*i))+(N*excess_row_work))], row_workload*N, MPI_FLOAT, i, 3, MPI_COMM_WORLD, &status);
+	MPI_Recv(&A[((N*(row_workload*i))+(N*excess_work))], row_workload*N, MPI_FLOAT, i, 3, MPI_COMM_WORLD, &status);
   }
 
   for (row = N - 1; row >= 0; row--) {
