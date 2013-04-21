@@ -225,8 +225,10 @@ void workerGauss(int my_rank, int p) {
 		MPI_Recv(norm_buf, N-norm, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, &status);
 		for (row = 0; row < row_workload; row++) {
 			multiplier = work_buf[(N*row)+norm] / norm_buf[0];
+			int count = 0;
 			for (col = norm; col < N; col++) {
-				work_buf[N*row+col] -= norm_buf[col] * multiplier;
+				work_buf[N*row+col] -= norm_buf[count] * multiplier;
+				count++;
 			}
 		}
 	}
