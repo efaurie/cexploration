@@ -13,7 +13,7 @@
 int N;
 
 void gauss();
-//void gauss( float X[],  float B[],  float X[], int my_rank, int p);
+void workerGauss();
 
 /* returns a seed for srand based on the time */
 unsigned int time_seed() {
@@ -116,9 +116,9 @@ int main(int argc, char **argv) {
 	parameters(argc, argv);
   }
   MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   float A[N*N], B[N], X[N];
   
   if(my_rank == 0) {
+	float A[N*N], B[N], X[N];
 	/* Initialize A and B */
 	initialize_inputs(A, B, X);
 
@@ -128,22 +128,21 @@ int main(int argc, char **argv) {
 	/* Start Clock */
 	printf("\nStarting clock.\n");
 	start_t = MPI_Wtime();
-  }
-
-  /* Gaussian Elimination */
-  gauss(A, B, X, my_rank, p);
-  
-  if(my_rank == 0) {
+	
+    gauss(A, B, X, my_rank, p);
+	
 	/* Stop Clock */
-	printf("Stopped clock.\n");
 	end_t = MPI_Wtime();
+	printf("Stopped clock.\n");
   
 	/* Display output */
 	print_X(X);
 
 	/* Display timing results */
-	printf("\nElapsed time = %g ms.\n", end_t - start_t);
+	printf("\nElapsed time = %g s\n", end_t - start_t);
 	printf("--------------------------------------------\n");
+  } else {
+	workerGauss(my_rank, p);
   }
   
   MPI_Finalize();
@@ -160,64 +159,62 @@ void gauss( float A[],  float B[],  float X[], int my_rank, int p) {
   float multiplier;
   int col_workload;
   int excess_work;
-  float buf[(N/p)+(N%p)];
   MPI_Status status;
   
   for(norm = 0; norm < N - 1; norm++) {
-	MPI_Bcast(&A[(N*norm)+norm], (N-norm), MPI_FLOAT, 0, MPI_COMM_WORLD);
+	col_workload = (N-norm) / p;
+	excess_work = (N-norm) % p;
+	for(i = 1; i < p; i++) {
+		MPI_Ssend(&A[(N*norm)+norm+(col_workload*i)+excess_work], col_workload, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+	}
 	for(row = norm + 1; row < N; row++) {
-		col_workload = (N-norm) / p;
-		excess_work = (N-norm) % p;
-		if(my_rank == 0)
-			multiplier = A[(N*row)+norm] / A[(N*norm)+norm];
+		multiplier = A[(N*row)+norm] / A[(N*norm)+norm];
 		MPI_Bcast(&multiplier, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 		
-		if(my_rank == 0) {
-			for(i = 1; i < p; i++) {
-				if(i < p - 1)
-					MPI_Send(&A[(N*row)+norm+(col_workload*p)], col_workload, MPI_FLOAT, i, 1, MPI_COMM_WORLD);
-				else
-					MPI_Send(&A[(N*row)+norm+(col_workload*p)], col_workload+excess_work, MPI_FLOAT, i, 1, MPI_COMM_WORLD);
-			}
-			/* Compute Rank 0's portion */
-			for(col = norm; col < norm+col_workload; col++) {
-				A[(N*row)+col] -= A[(N*norm)+col] * multiplier;
-			}
-			
-			/* Collect other portions */
-			for(i = 1; i < p; i++) {
-				if(i < p - 1)
-					MPI_Recv(&A[(N*row)+norm+(col_workload*p)], col_workload, MPI_FLOAT, i, 2, MPI_COMM_WORLD, &status);
-				else
-					MPI_Recv(&A[(N*row)+norm+(col_workload*p)], col_workload+excess_work, MPI_FLOAT, i, 2, MPI_COMM_WORLD, &status);
-			}
-			B[row] -= B[norm] * multiplier;
-		} else {
-			if(my_rank < p-1) {
-				MPI_Recv(buf, col_workload, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, &status);
-				for(col = 0; col < col_workload; col++) {
-					buf[col] -= A[(N*norm)+col] * multiplier;
-				}
-				MPI_Send(buf, col_workload, MPI_FLOAT, 0, 2, MPI_COMM_WORLD);
-			} else {
-				MPI_Recv(buf, col_workload+excess_work, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, &status); 
-				for(col = 0; col < col_workload+excess_work; col++) {
-					buf[col] -= A[(N*norm)+col] * multiplier;
-				}
-				MPI_Send(buf, col_workload+excess_work, MPI_FLOAT, 0, 2, MPI_COMM_WORLD);
-			}
+		for(i = 1; i < p; i++) {
+			MPI_Ssend(&A[(N*row)+norm+(col_workload*i)+excess_work], col_workload, MPI_FLOAT, i, 1, MPI_COMM_WORLD);
 		}
+		/* Compute Rank 0's portion */
+		for(col = norm; col < norm+col_workload+excess_work; col++) {
+			A[(N*row)+col] -= A[(N*norm)+col] * multiplier;
+		}
+			
+		/* Collect other portions */
+		for(i = 1; i < p; i++) {
+			MPI_Recv(&A[(N*row)+norm+(col_workload*i)+excess_work], col_workload, MPI_FLOAT, i, 2, MPI_COMM_WORLD, &status);
+		}
+		B[row] -= B[norm] * multiplier;
 	}
   }
 
-  if(my_rank == 0) {
-	for (row = N - 1; row >= 0; row--) {
-		X[row] = B[row];
-		for (col = N-1; col > row; col--) {
-			X[row] -= A[(N*row)+col] * X[col];
-		}
-		X[row] /= A[(N*row)+row];
+  for (row = N - 1; row >= 0; row--) {
+	X[row] = B[row];
+	for (col = N-1; col > row; col--) {
+		X[row] -= A[(N*row)+col] * X[col];
 	}
+	X[row] /= A[(N*row)+row];
   }
+}
+
+void workerGauss(int my_rank, int p) {
+	int norm, row, col, i;
+	float multiplier;
+	int col_workload;
+	float norm_buf[(N/p)+(N%p)];
+	float work_buf[(N/p)+(N%p)];
+	MPI_Status status;
+	
+	for(norm = 0; norm < N - 1; norm++) {
+		col_workload = (N-norm) / p;
+		MPI_Recv(norm_buf, col_workload, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, &status);
+		for(row = norm + 1; row < N; row++) {
+			MPI_Bcast(&multiplier, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+			MPI_Recv(work_buf, col_workload, MPI_FLOAT, 0, 1, MPI_COMM_WORLD, &status);
+			for(col = 0; col < col_workload; col++) {
+				work_buf[col] -= norm_buf[col] * multiplier;
+			}
+			MPI_Ssend(work_buf, col_workload, MPI_FLOAT, 0, 2, MPI_COMM_WORLD);
+		}
+	}
 }
 
