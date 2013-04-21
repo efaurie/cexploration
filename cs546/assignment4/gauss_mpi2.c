@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
  * defined in the beginning of this code.  X[] is initialized to zeros.
  */
 void gauss( float A[],  float B[],  float X[], int my_rank, int p) {
-  int norm, row, col, i;
+  int norm, row, col, i, j;
   float multiplier;
   int end_row;
   MPI_Status status;
@@ -165,14 +165,21 @@ void gauss( float A[],  float B[],  float X[], int my_rank, int p) {
   int excess_work = (N-1)%p;
   end_row = row_workload + excess_work;
   for(i = 1; i < p; i++) {
-	MPI_Ssend(&A[((N*(row_workload*i))+(N*excess_work))], row_workload*N, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+	MPI_Ssend(&A[(N*row_workload*i)+(N*excess_work)+N], row_workload*N, MPI_FLOAT, i, 0, MPI_COMM_WORLD);
+	printf("Sending Row: %5.2f, %d elements\n", A[(N*row_workload*i)+(N*excess_work)+N], row_workload*N);
   }
   
   for(norm = 0; norm < N - 1; norm++) {
 	for(i = 1; i < p; i++) {
 		/*If they are still computing*/
 		if(norm < (i*row_workload)+(row_workload+excess_work)) {
+			printf("Dimension: %d ", (N*norm)+norm);
 			MPI_Ssend(&A[(N*norm)+norm], N-norm, MPI_FLOAT, i, 1, MPI_COMM_WORLD);
+			printf("Sending: %5.2f, ", A[(N*norm)+norm]);
+			for(j = N*norm+norm+1; j < (N*norm+norm)+(N-norm);j++) {
+				printf(" %5.2f, ", A[j]);
+			}
+			printf("\n");
 		}
 	}
 	for (row = norm + 1; row < N; row++) {
@@ -210,9 +217,7 @@ void workerGauss(int my_rank, int p) {
 	int row_workload = (N-1)/p;
 	int excess_work = (N-1)%p;
 	float work_buf[row_workload*N];
-	for(i = 1; i < p; i++) {
-		MPI_Recv(work_buf, row_workload*N, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, &status);
-	}
+	MPI_Recv(work_buf, row_workload*N, MPI_FLOAT, 0, 0, MPI_COMM_WORLD, &status);
 	
 	end_row = (my_rank*row_workload)+(row_workload+excess_work);
 	
