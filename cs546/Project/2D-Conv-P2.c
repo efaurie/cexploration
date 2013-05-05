@@ -109,7 +109,7 @@ void main(int argc, char **argv) {
 	MPI_Scatter(C, 512*workload, mpi_complex, 
 			   c, 512*workload, mpi_complex,
 			   0, MPI_COMM_WORLD);
-	execute_fft(c, 1, p, my_rank);
+	execute_fft(c, -1, p, my_rank);
 	MPI_Gather(c, 512*workload, mpi_complex,
 			   C, 512*workload, mpi_complex,
 			   0, MPI_COMM_WORLD);
