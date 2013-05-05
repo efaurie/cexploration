@@ -23,6 +23,9 @@ MPI_Datatype mpi_complex;
 
 void main(int argc, char **argv) {
 	
+	double start_t;
+	double end_t;
+	
 	int my_rank, p;
 	complex *A;
 	complex *B;
@@ -57,6 +60,8 @@ void main(int argc, char **argv) {
 		initialize_data(f1_name, A);
 		initialize_data(f2_name, B);
 	}
+	
+	start_t = MPI_Wtime();
 	
 	/* 2D FFT on A */
 	MPI_Scatter(A, 512*workload, mpi_complex, 
@@ -109,8 +114,13 @@ void main(int argc, char **argv) {
 			   C, 512*workload, mpi_complex,
 			   0, MPI_COMM_WORLD);
 	
+	
+	end_t = MPI_Wtime();
+	
 	if(my_rank == 0) {
 		output_data(f_out, C);
+		printf("\nElapsed time = %g s\n", end_t - start_t);
+		printf("--------------------------------------------\n");
 		int i;
 		for(i = 0; i < 512*512; i++) {
 			free(&A[i]);

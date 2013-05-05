@@ -25,6 +25,8 @@ MPI_Datatype mpi_complex;
 
 void main(int argc, char **argv) {
 	
+	double start_t, end_t;
+	
 	int my_rank, p;
 	complex A[512*512], B[512*512], C[512*512];
 
@@ -49,6 +51,7 @@ void main(int argc, char **argv) {
 	if(my_rank == 0) {
 		initialize_data(f1_name, A);
 		initialize_data(f2_name, B);
+		start_t = MPI_Wtime();
 		dist_data(A, p);
 		dist_data(B, p);
 	} else {
@@ -93,8 +96,12 @@ void main(int argc, char **argv) {
 	execute_fft(C, 1, p, my_rank);
 	collect_data(C, p, my_rank);
 	
+	end_t = MPI_Wtime();
+	
 	if(my_rank == 0) {
 		output_data(f_out, C);
+		printf("\nElapsed time = %g s\n", end_t - start_t);
+		printf("--------------------------------------------\n");
 	}
 	
 	MPI_Finalize();
