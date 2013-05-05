@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <sys/time.h>
 
 
 typedef struct {float r; float i;} complex;
@@ -8,10 +9,6 @@ static complex ctmp;
 #define C_SWAP(a,b) {ctmp=(a);(a)=(b);(b)=ctmp;}
 
 void initialize_data();
-void dist_data();
-void recv_data();
-void output_data();
-void collect_data();
 void transpose();
 void execute_fft();
 void execute_mm();
@@ -20,11 +17,11 @@ void c_fft1d();
 char f1_name[] = "1_im1";
 char f2_name[] = "1_im2";
 char f_out[] = "output";
-MPI_Datatype mpi_complex;
 
 void main(int argc, char **argv) {
 	
-	double start_t, end_t;
+	struct timeval start_t, end_t;
+	struct timezone tzdummy;
 
 	complex A[512*512], B[512*512], C[512*512];
 	
@@ -32,6 +29,7 @@ void main(int argc, char **argv) {
 	initialize_data(f1_name, A);
 	initialize_data(f2_name, B);
 	
+	gettimeofday(&start_t, &tzdummy);
 	
 	/* 2D FFT on A */
 	execute_fft(A, 1);
@@ -52,8 +50,9 @@ void main(int argc, char **argv) {
 	transpose(C);
 	execute_fft(C, -1, p, my_rank);
 	
+	gettimeofday(&end_t, &tzdummy);
 	output_data(f_out, C);
-	printf("\nElapsed time = %g s\n", end_t - start_t);
+	printf("\nElapsed time = %g s\n", (double)((unsigned int)end_t.tv_usec - (unsigned int)start_t.tv_usec) / 1000000.0);
 	printf("--------------------------------------------\n");
 }
 
