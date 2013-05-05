@@ -85,18 +85,23 @@ void main(int argc, char **argv) {
 	workload = 512 / (p/2);
 	if(my_rank == 0) {
 		A = malloc(512*512 * sizeof(complex));
+		B = malloc(512*512 * sizeof(complex));
 		C = malloc(512*512 * sizeof(complex));
 		initialize_data(f1_name, A);
 		start_t = MPI_Wtime();
-		MPI_Scatter(A, 512*workload, mpi_complex, 
-		        a, 512*workload, mpi_complex,
-		        0, comm1);
 	} else if(my_rank == p/2 || p == 1) {
 		B = malloc(512*512 * sizeof(complex));
 		initialize_data(f2_name, B);
+	}
+	
+	if(my_rank < p/2) {
+		MPI_Scatter(A, 512*workload, mpi_complex, 
+		            a, 512*workload, mpi_complex,
+		            0, comm1);
+	} else {
 		MPI_Scatter(B, 512*workload, mpi_complex, 
-		        b, 512*workload, mpi_complex,
-		        0, comm2);
+		            b, 512*workload, mpi_complex,
+		            0, comm2);
 	}
 	
 	/* 2D FFT on A */
@@ -216,7 +221,7 @@ void sync_tasks(complex a[512*512], complex b[512*512], complex A[512*512], comp
 	} else {
 		MPI_Gather(b, workload*512, mpi_complex, 
 				   B, workload*512, mpi_complex,
-				   0, commR2); 
+				   0, commR2);
 	}
 }
 
