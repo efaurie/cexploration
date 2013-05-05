@@ -13,6 +13,7 @@ void transpose();
 void execute_fft();
 void execute_mm();
 void c_fft1d();
+void output_data();
 
 char f1_name[] = "1_im1";
 char f2_name[] = "1_im2";
@@ -46,9 +47,9 @@ void main(int argc, char **argv) {
 	execute_mm(A, B, C);
 	
 	/* 2D FFT on C */
-	execute_fft(C, -1, p, my_rank);
+	execute_fft(C, -1);
 	transpose(C);
-	execute_fft(C, -1, p, my_rank);
+	execute_fft(C, -1);
 	
 	gettimeofday(&end_t, &tzdummy);
 	output_data(f_out, C);
