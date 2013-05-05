@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <math.h>
 #include "mpi.h"
 
@@ -99,7 +100,7 @@ void main(int argc, char **argv) {
 	}
 	
 	/* 2D FFT on A */
-	if(my_rank <= p/2) {
+	if(my_rank < p/2) {
 	
 		MPI_Comm_rank(comm1, &my_loc_rank);
 		MPI_Comm_size(comm1, &loc_p);
@@ -116,7 +117,7 @@ void main(int argc, char **argv) {
 				    0, comm1);
 		execute_fft(a, 1, loc_p, my_loc_rank);
 		
-	} else if(my_rank > p/2 || p == 1) {
+	} else if(my_rank >= p/2 || p == 1) {
 	
 		/* 2D FFT on B */
 		MPI_Comm_rank(comm1, &my_loc_rank);
