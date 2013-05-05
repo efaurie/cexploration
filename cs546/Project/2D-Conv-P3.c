@@ -120,11 +120,8 @@ void main(int argc, char **argv) {
 	} else if(my_rank >= p/2 || p == 1) {
 	
 		/* 2D FFT on B */
-		MPI_Comm_rank(comm1, &my_loc_rank);
-		MPI_Comm_size(comm1, &loc_p);
-		MPI_Scatter(B, 512*workload, mpi_complex, 
-			        b, 512*workload, mpi_complex,
-			        0, comm2);
+		MPI_Comm_rank(comm2, &my_loc_rank);
+		MPI_Comm_size(comm2, &loc_p);
 		execute_fft(b, 1, loc_p, my_loc_rank);
 		MPI_Gather(b, 512*workload, mpi_complex,
 		  	       B, 512*workload, mpi_complex,
@@ -134,7 +131,7 @@ void main(int argc, char **argv) {
 		}
 		MPI_Scatter(B, 512*workload, mpi_complex, 
 			        b, 512*workload, mpi_complex,
-			        0, MPI_COMM_WORLD);
+			        0, comm2);
 		execute_fft(b, 1, loc_p, my_loc_rank);
 	}
 	
