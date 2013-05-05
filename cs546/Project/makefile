@@ -1,6 +1,6 @@
 all: 
 	mpicc -c 2D-Conv.c
-	mpicc -c 2D-Conv 2D-Conv.o
+	mpicc -o 2D-Conv 2D-Conv.o
 	mpicc -c 2D-Conv-P1.c
 	mpicc -o 2D-Conv-P1 2D-Conv-P1.o
 	mpicc -c 2D-Conv-P2.c
